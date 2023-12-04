@@ -1,10 +1,54 @@
-use std::error::Error;
+use std::{error::Error, str::from_utf8, vec};
 
-use regex::CaptureMatches;
+use lazy_static::lazy_static;
+use regex::Regex;
 
-pub fn extract_numbers(input: CaptureMatches) -> Result<Vec<usize>, Box<dyn Error>> {
+lazy_static! {
+    pub static ref NUMBER_REGEX: Regex = Regex::new(r"(\d)").unwrap();
+    pub static ref STRING_NUMBER_REGEX: Regex =
+        Regex::new(r"(one|two|three|four|five|six|seven|eight|nine)|(\d)").unwrap();
+}
+
+fn decode_string_number(input: &str) -> &str {
+    match input {
+        "one" => "1",
+        "two" => "2",
+        "three" => "3",
+        "four" => "4",
+        "five" => "5",
+        "six" => "6",
+        "seven" => "7",
+        "eight" => "8",
+        "nine" => "9",
+        _ => "0",
+    }
+}
+
+pub fn replace_number_strings(input: &str) -> String {
+    let number_strings = vec![
+        "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    ];
+
+    let mut line = String::from(input);
+
+    let mut positions: Vec<(usize, &str)> = vec![];
+    for num_string in number_strings {
+        for (offset, _) in input.match_indices(num_string) {
+            positions.push((offset, decode_string_number(num_string)));
+        }
+    }
+
+    for (offset, digit) in positions {
+        line.replace_range(offset..offset + 1, digit);
+    }
+
+    line
+}
+
+pub fn numbers_in_line(line: &str, re: &Regex) -> Result<Vec<usize>, Box<dyn Error>> {
     let mut all_numbers = vec![];
-    for (full_match, [_]) in input.map(|x| x.extract()) {
+
+    for (full_match, [_]) in re.captures_iter(line).map(|x| x.extract()) {
         all_numbers.push(full_match.parse::<usize>()?);
     }
 
@@ -12,9 +56,10 @@ pub fn extract_numbers(input: CaptureMatches) -> Result<Vec<usize>, Box<dyn Erro
         return Err("no numbers found".into());
     }
 
-    // at this point there is at least one number found
-    // if there is ONLY one number, repeat the number
-    // otherwise add the last number found
+    Ok(all_numbers)
+}
+
+pub fn extract_calibration_number(all_numbers: Vec<usize>) -> Option<usize> {
     let mut res: Vec<usize> = Vec::with_capacity(2);
     match all_numbers.len() {
         1 => {
@@ -27,11 +72,53 @@ pub fn extract_numbers(input: CaptureMatches) -> Result<Vec<usize>, Box<dyn Erro
         }
     }
 
-    Ok(res)
+    Some(
+        format!(
+            "{}{}",
+            all_numbers.first().unwrap(),
+            all_numbers.last().unwrap()
+        )
+        .parse::<usize>()
+        .unwrap(),
+    )
 }
 
-pub fn concatenate_numbers(input: Vec<usize>) -> usize {
-    format!("{}{}", input.first().unwrap(), input.last().unwrap())
-        .parse::<usize>()
-        .unwrap()
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_calibration_number() {
+        assert_eq!(extract_calibration_number(vec![1, 2, 3]).unwrap(), 13);
+        assert_eq!(extract_calibration_number(vec![3, 3]).unwrap(), 33);
+        assert_eq!(extract_calibration_number(vec![8]).unwrap(), 88);
+        assert_eq!(
+            extract_calibration_number(vec![4, 4, 4, 4, 4, 4, 4, 2]).unwrap(),
+            42
+        );
+    }
+
+    #[test]
+    fn test_string_numbers_in_line() {
+        assert_eq!(
+            numbers_in_line("one1two3", &STRING_NUMBER_REGEX).unwrap(),
+            vec![1, 1, 2, 3]
+        );
+        assert_eq!(
+            numbers_in_line("one9xmhvzklmzffive1kcsixmnsbm2", &STRING_NUMBER_REGEX).unwrap(),
+            vec![1, 9, 5, 1, 6, 2]
+        );
+        assert_eq!(
+            numbers_in_line("1dgschj", &STRING_NUMBER_REGEX).unwrap(),
+            vec![1]
+        );
+        assert_eq!(
+            numbers_in_line(
+                "vfh4zteightkvbpps4rxhlnctjztjfvdvdxfk",
+                &STRING_NUMBER_REGEX
+            )
+            .unwrap(),
+            vec![4, 8, 4]
+        );
+    }
 }
