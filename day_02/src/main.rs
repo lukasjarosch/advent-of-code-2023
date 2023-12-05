@@ -67,10 +67,10 @@ fn main() {
     let check_red = 12;
     let check_green = 13;
     let check_blue = 14;
-    let mut result: u16 = 0;
+    let mut result_part1: u16 = 0;
 
-    // filter the game state by invalid games and add the IDs of valid games
-    for (game_id, draws) in game_draws {
+    // Part 1: Filter the game state by invalid games and add the IDs of valid games
+    for (game_id, draws) in &game_draws {
         let invalid_draws: Vec<(u8, u8, u8)> = draws
             .iter()
             .map(|draw| *draw)
@@ -81,8 +81,29 @@ fn main() {
             println! {"Game #{game_id} has invalid draws {:?}", draws};
         } else {
             println! {"Game #{game_id} is valid"};
-            result += game_id as u16;
+            result_part1 += *game_id as u16;
         }
     }
-    println! {"=> Result is {result}"};
+    println! {"=> Result for part 1 is: {result_part1}"};
+
+    // Part 2: Find the minimum cube count for each game
+    let mut result_part2: u32 = 0;
+    for (game_id, draws) in &game_draws {
+        let min_cube_count = draws.iter().fold((0, 0, 0), |acc, tuple| {
+            (acc.0.max(tuple.0), acc.1.max(tuple.1), acc.2.max(tuple.2))
+        });
+
+        println!(
+            "Game #{game_id} requires at least {} red, {} green and {} blue cubes to work",
+            min_cube_count.0, min_cube_count.1, min_cube_count.2
+        );
+
+        let power: u32 =
+            min_cube_count.0 as u32 * min_cube_count.1 as u32 * min_cube_count.2 as u32;
+        println! {"{:?}", power};
+
+        result_part2 += power;
+    }
+
+    println!("=> Result for part 2 is: {result_part2}");
 }
