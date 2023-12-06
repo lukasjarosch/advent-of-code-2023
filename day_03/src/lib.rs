@@ -118,7 +118,7 @@ impl Matrix {
         symbols
     }
 
-    pub fn number_has_adjacent_symbol(&mut self, number: u16, pos: Position) -> bool {
+    pub fn number_has_any_adjacent_symbol(&mut self, number: u16, pos: Position) -> bool {
         let positions_to_check = self.calculate_surrounding_positions(number, pos);
 
         for check_pos in positions_to_check {
@@ -130,6 +130,25 @@ impl Matrix {
         }
 
         false
+    }
+
+    pub fn number_has_special_adjacent_symbol(
+        &mut self,
+        symbol: char,
+        number: u16,
+        pos: Position,
+    ) -> Option<Position> {
+        let positions_to_check = self.calculate_surrounding_positions(number, pos);
+
+        for check_pos in positions_to_check {
+            let c = self.get(check_pos.row(), check_pos.column()).unwrap();
+            if c == symbol {
+                // println! {"{number:>3} has adjacent symbol '{}' at ({},{})", c, check_pos.row(), check_pos.column()};
+                return Some(check_pos);
+            }
+        }
+
+        None
     }
 
     fn is_symbol(input: &char) -> bool {
