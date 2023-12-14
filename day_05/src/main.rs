@@ -1,6 +1,9 @@
-use std::{collections::HashMap, u64};
+use rayon::prelude::*;
+use std::{ops::Range, u64};
 
-use day_05::{parse_map_line, resolve_seed, Mapping};
+use day_05::{
+    get_mapping_by_dest, get_min_dest_mapping, min_value, resolve_seed, solution2, Mapping,
+};
 
 fn main() {
     let input_filename = "input2";
@@ -42,7 +45,7 @@ fn main() {
             line_map_buffer.clear();
         }
 
-        let line_map = parse_map_line(line);
+        let line_map = Mapping::new_from_string(line);
         match line_map {
             None => {
                 panic!("broken, lol")
@@ -53,10 +56,60 @@ fn main() {
         }
     }
 
+    // Part 1
     let mut location_numbers: Vec<u64> = vec![];
-    for seed in seed_numbers {
-        location_numbers.push(resolve_seed(&mappings, seed));
+    for seed in seed_numbers.iter() {
+        location_numbers.push(resolve_seed(&mappings, *seed));
     }
-
     println! {"=> Smallest location value is: {:?}", location_numbers.iter().min().unwrap()};
+
+    // For part 2, seed numbers need to be converted to ranges
+    // let seed_ranges: Vec<Range<_>> = seed_numbers
+    //     .chunks(2)
+    //     .into_iter()
+    //     .map(|pair| pair[0]..pair[0] + pair[1])
+    //     .collect();
+    //
+    // println! {"SEEDS: {:?}", seed_ranges};
+    //
+    // for mapping in mappings.iter() {
+    //     for map in mapping {
+    //         println! {"[{:?}]-[{:?}]", map.source_range(), map.destination_range()};
+    //         // if map.destination_range().contains(&location) {
+    //         //     println! {"{:?}", map.source_range()};
+    //         //     break;
+    //         // }
+    //     }
+    // }
+    //
+    //
+    println! {"{:?}", solution2(&input)};
+
+    // let mut seed_numbers_part2: Vec<u64> = vec![];
+    // for seed_pair in seed_numbers.chunks(2) {
+    //     println! {"===== INITIALIZING PAIR {:?} ====", seed_pair};
+    //     let range = seed_pair[0]..seed_pair[0] + seed_pair[1];
+    //     let mut tmp: Vec<u64> = range.into_par_iter().map(|num| num).collect();
+    //     seed_numbers_part2.append(&mut tmp);
+    //     break;
+    // }
+    //
+    // // BRUTE FORCE: CPU goes brrrrr
+    // let location_numbers_part2: Vec<u64> = seed_numbers_part2
+    //     .par_iter()
+    //     .enumerate()
+    //     .map(|(idx, num)| {
+    //         println! {"===== RESOLVING {:>5.2}% ({} left) ====",  (idx as f64 / seed_numbers_part2.len() as f64) * 100.0, format!("{:>12}", seed_numbers_part2.len() - idx)};
+    //         resolve_seed(&mappings, *num)
+    //     })
+    //     .collect();
+    //
+    // println! {"=> Smallest location value is: {:?}", location_numbers_part2.par_iter().min().unwrap()};
+
+    // println! {"Smallest location mapping is {:?}", get_min_dest_mapping(mappings.last().unwrap())};
+    //
+    // for mapping in mappings.iter().rev() {
+    //     let map = get_min_dest_mapping(mapping);
+    //     println! {"{:?}", map};
+    // }
 }
