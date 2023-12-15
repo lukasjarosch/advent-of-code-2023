@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use num::integer::lcm;
+use std::{collections::HashMap, usize};
 
-use day_08::Node;
+use day_08::{traverse_nodes, Node};
 use regex::Regex;
 
 fn main() {
@@ -21,28 +22,60 @@ fn main() {
         }
     }
 
-    let reached_end: bool = false;
+    // part 1
+    // let mut steps = 0;
+    // let mut path: Vec<Node> = vec![Node("AAA".to_string())];
+    // loop {
+    //     let direction_index = steps % directions.len();
+    //
+    //     let current_node = path.iter().last().unwrap();
+    //     let direction_nodes = nodes.get(&current_node).unwrap();
+    //
+    //     if *current_node == Node("ZZZ".to_string()) {
+    //         println! {"FINISHED after {} steps", steps};
+    //         break;
+    //     }
+    //
+    //     let direction = directions.get(direction_index).unwrap();
+    //     match direction {
+    //         'L' => path.push(direction_nodes.0.clone()),
+    //         'R' => path.push(direction_nodes.1.clone()),
+    //         _ => panic!("unknown direction"),
+    //     }
+    //
+    //     steps += 1;
+    // }
 
-    let mut steps = 0;
-    let mut path: Vec<Node> = vec![Node("AAA".to_string())];
-    while !reached_end {
-        let direction_index = steps % directions.len();
+    // part 2
+    // NOTE: this will only work in 'release' mode or you'll run in a stack overflow because of the
+    // recursion (TCE). Ideally I would've solved that part iteratively as well but I wanted to give it a
+    // shot.
+    let start_nodes: Vec<Node> = nodes
+        .keys()
+        .map(|node| node.clone())
+        .filter(|node| node.is_start_node())
+        .collect();
+    let mut end_nodes: Vec<Node> = nodes
+        .keys()
+        .map(|node| node.clone())
+        .filter(|node| node.is_end_node())
+        .collect();
 
-        let current_node = path.iter().last().unwrap();
-        let direction_nodes = nodes.get(&current_node).unwrap();
-
-        if *current_node == Node("ZZZ".to_string()) {
-            println! {"FINISHED after {} steps", steps};
-            break;
-        }
-
-        let direction = directions.get(direction_index).unwrap();
-        match direction {
-            'L' => path.push(direction_nodes.0.clone()),
-            'R' => path.push(direction_nodes.1.clone()),
-            _ => panic!("unknown direction"),
-        }
-
-        steps += 1;
+    let mut steps: Vec<usize> = vec![];
+    for start_node in start_nodes {
+        steps.push(traverse_nodes(
+            &start_node,
+            &mut end_nodes,
+            &nodes,
+            &directions,
+            0,
+        ));
     }
+
+    let mut result: usize = steps.pop().unwrap();
+    while steps.len() > 0 {
+        result = lcm(result, steps.pop().unwrap())
+    }
+
+    println! {"=> Result is {result}"};
 }
