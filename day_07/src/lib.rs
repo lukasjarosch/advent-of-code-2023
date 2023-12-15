@@ -6,7 +6,8 @@ use std::{
 #[derive(Debug, Eq)]
 pub struct Card(pub char);
 
-const CARD_VALUES: &str = "AKQJT98765432";
+// const CARD_VALUES: &str = "AKQJT98765432"; // part 1
+const CARD_VALUES: &str = "AKQT98765432J"; // part 2
 
 impl Card {
     pub fn new(value: char) -> Result<Card, String> {
@@ -55,7 +56,7 @@ impl DerefMut for Card {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum HandType {
     HighCard = 1,
     OnePair,
@@ -89,8 +90,12 @@ impl CardHand {
         format!("{}", self)
     }
 
-    pub fn evaluate_type(&self) -> HandType {
-        let mut card_counts = self.card_count();
+    pub fn hand_type(hand: &CardHand) -> HandType {
+        let mut card_counts = hand.card_count();
+
+        // at this point we loose the ability to map counts to Cards
+        card_counts.sort();
+        card_counts.reverse();
 
         // possible card_counts for HandType if they are sorted
         //
@@ -101,21 +106,85 @@ impl CardHand {
         // FullHouse:   3,2,0,0,0,0,0,...
         // FourOfKind:  4,1,0,0,0,0,0,...
         // FiveOfKind:  5,0,0,0,0,0,0,...
-
-        // at this point we loose the ability to map counts to Cards
-        card_counts.sort();
-        card_counts.reverse();
-
         match &card_counts[0..5] {
-            [1, 1, 1, 1, 1] => return HandType::HighCard,
-            [2, 1, 1, 1, 0] => return HandType::OnePair,
-            [2, 2, 1, 0, 0] => return HandType::TwoPair,
-            [3, 1, 1, 0, 0] => return HandType::ThreeOfKind,
-            [3, 2, 0, 0, 0] => return HandType::FullHouse,
-            [4, 1, 0, 0, 0] => return HandType::FourOfKind,
-            [5, 0, 0, 0, 0] => return HandType::FiveOfKind,
+            [1, 1, 1, 1, 1] => HandType::HighCard,
+            [2, 1, 1, 1, 0] => HandType::OnePair,
+            [2, 2, 1, 0, 0] => HandType::TwoPair,
+            [3, 1, 1, 0, 0] => HandType::ThreeOfKind,
+            [3, 2, 0, 0, 0] => HandType::FullHouse,
+            [4, 1, 0, 0, 0] => HandType::FourOfKind,
+            [5, 0, 0, 0, 0] => HandType::FiveOfKind,
             _ => panic!("impossible pattern"),
-        };
+        }
+    }
+
+    fn project_joker(joker_count: usize, input: HandType) -> HandType {
+        let mut projections: Vec<(usize, HandType, HandType)> = vec![];
+        projections.push((1, HandType::HighCard, HandType::OnePair));
+        projections.push((1, HandType::OnePair, HandType::ThreeOfKind));
+        projections.push((1, HandType::TwoPair, HandType::FullHouse));
+        projections.push((1, HandType::ThreeOfKind, HandType::FourOfKind));
+        projections.push((1, HandType::FourOfKind, HandType::FiveOfKind));
+        projections.push((2, HandType::OnePair, HandType::ThreeOfKind));
+        projections.push((2, HandType::TwoPair, HandType::FourOfKind));
+        projections.push((2, HandType::FullHouse, HandType::FiveOfKind));
+        projections.push((3, HandType::ThreeOfKind, HandType::FourOfKind));
+        projections.push((3, HandType::FullHouse, HandType::FiveOfKind));
+
+        if let Some(proj) = projections
+            .iter()
+            .find(|x| x.0 == joker_count && x.1 == input)
+        {
+            // println! {"project {:?} with {:?} jokers to {:?}", proj.1, proj.0, proj.2};
+            return proj.2;
+        }
+
+        input
+    }
+
+    pub fn evaluate_type(&self) -> HandType {
+        let card_type = CardHand::hand_type(&self);
+
+        // no joker? this is the best we can do
+        if !self.to_string().contains("J") {
+            return card_type;
+        }
+
+        // Projecting jokers is just applying a projection map which is derived
+        // from the cases below.
+        //
+        // 1 Joker
+        //  - if HighCard -> OnePair
+        //  - if OnePair -> ThreeOfKind; could also be TwoPair but ThreeOfKind is better
+        //  - if TwoPair -> FullHouse
+        //  - if ThreeOfKind -> FourOfKind; could also be FullHouse but FourOfKind is better
+        //  - if FullHouse -> Cannot happen!
+        //  - if FourOfKind -> FiveOfKind
+        //  - if FiveOfKind -> Cannot happen! There must be exactly one joker!
+        // 2 Joker
+        //  - if HighCard -> Cannot happen! There must be exactly two jokers!
+        //  - if OnePair -> ThreeOfKind
+        //  - if TwoPair -> FourOfKind; could also be FullHouse but FourOfKind is better
+        //  - if ThreeOfKind -> Cannot happen! The jokers already make up a pair.
+        //  - if FullHouse -> FiveOfKind
+        //  - if FourOfKind -> Cannot happen!
+        //  - if FiveOfKind -> Cannot happen!
+        // 3 Joker
+        //  - if HighCard -> Cannot happen!
+        //  - if OnePair -> Cannot happen!
+        //  - if TwoPair -> Cannot happen!
+        //  - if ThreeOfKind -> FourOfKind
+        //  - if FullHouse -> FiveOfKind
+        //  - if FourOfKind -> Cannot happen!
+        //  - if FiveOfKind -> Cannot happen!
+        // 4 Joker -> FiveOfKind
+        // 5 joker -> FiveOfKind
+        let jokers: Vec<char> = self.to_string().chars().filter(|c| *c == 'J').collect();
+        match jokers.len() {
+            1 | 2 | 3 => CardHand::project_joker(jokers.len(), card_type),
+            4 | 5 => HandType::FiveOfKind,
+            _ => panic!("illegal CardHand"),
+        }
     }
 }
 

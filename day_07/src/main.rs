@@ -30,7 +30,7 @@ fn main() {
         let rank = index + 1;
         let bid = bids.get(&hand.to_string()).unwrap();
 
-        println! {"{hand} has rank {rank} and bid {bid}" };
+        println! {"{hand} ({:?}) has rank {rank} and bid {bid}", hand.evaluate_type()};
         result += rank * bid;
     }
 
