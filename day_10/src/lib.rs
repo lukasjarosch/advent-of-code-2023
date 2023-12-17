@@ -211,7 +211,7 @@ pub struct Field(pub Vec<Vec<Tile>>);
 impl Field {
     pub fn tile_index(&self, row: usize, col: usize) -> usize {
         // row * width + col
-        row * self.0.len() + col
+        row * self.0.iter().next().unwrap().len() + col
     }
 }
 
