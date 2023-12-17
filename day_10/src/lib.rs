@@ -8,7 +8,7 @@ pub enum Direction {
     West,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Tile {
     PipeVerticalNorthSouth,
     PipeHorizontalEastWest,
@@ -47,8 +47,58 @@ impl Tile {
         }
     }
 
+    pub fn as_str(&self) -> &str {
+        match self {
+            Tile::PipeVerticalNorthSouth => "PipeVerticalNorthSouth",
+            Tile::PipeHorizontalEastWest => "PipeHorizontalEastWest",
+            Tile::PipeBendNorthEast => "PipeBendNorthEast",
+            Tile::PipeBendNorthWest => "PipeBendNorthWest",
+            Tile::PipeBendSouthWest => "PipeBendSouthWest",
+            Tile::PipeBendSouthEast => "PipeBendSouthEast",
+            Tile::Ground => "Ground",
+            Tile::StartPosition => "StartPosition",
+            _ => panic!("invalid char"),
+        }
+    }
+
     fn valid_connections(&self, direction: Direction) -> Option<Vec<Tile>> {
         let lookup: Vec<(Tile, Direction, Vec<Tile>)> = vec![
+            (
+                Tile::StartPosition,
+                Direction::North,
+                vec![
+                    Tile::PipeVerticalNorthSouth,
+                    Tile::PipeBendSouthWest,
+                    Tile::PipeBendSouthEast,
+                ],
+            ),
+            (
+                Tile::StartPosition,
+                Direction::East,
+                vec![
+                    Tile::PipeHorizontalEastWest,
+                    Tile::PipeBendSouthWest,
+                    Tile::PipeBendNorthWest,
+                ],
+            ),
+            (
+                Tile::StartPosition,
+                Direction::South,
+                vec![
+                    Tile::PipeVerticalNorthSouth,
+                    Tile::PipeBendNorthWest,
+                    Tile::PipeBendNorthEast,
+                ],
+            ),
+            (
+                Tile::StartPosition,
+                Direction::West,
+                vec![
+                    Tile::PipeHorizontalEastWest,
+                    Tile::PipeBendNorthEast,
+                    Tile::PipeBendSouthEast,
+                ],
+            ),
             (
                 Tile::PipeVerticalNorthSouth,
                 Direction::North,
@@ -171,18 +221,18 @@ impl Tile {
             ),
         ];
 
-        if self == &Tile::StartPosition {
-            return Some(vec![
-                Tile::PipeVerticalNorthSouth,
-                Tile::PipeHorizontalEastWest,
-                Tile::PipeBendNorthEast,
-                Tile::PipeBendNorthWest,
-                Tile::PipeBendSouthWest,
-                Tile::PipeBendSouthEast,
-                Tile::Ground,
-                Tile::StartPosition,
-            ]);
-        }
+        // if self == &Tile::StartPosition {
+        //     return Some(vec![
+        //         Tile::PipeVerticalNorthSouth,
+        //         Tile::PipeHorizontalEastWest,
+        //         Tile::PipeBendNorthEast,
+        //         Tile::PipeBendNorthWest,
+        //         Tile::PipeBendSouthWest,
+        //         Tile::PipeBendSouthEast,
+        //         Tile::Ground,
+        //         Tile::StartPosition,
+        //     ]);
+        // }
 
         if let Some(found) = lookup.iter().find(|x| &x.0 == self && x.1 == direction) {
             return Some(found.2.clone());
@@ -192,7 +242,7 @@ impl Tile {
     }
 
     pub fn can_connect(a: Tile, b: Tile, direction: Direction) -> bool {
-        if b == Tile::Ground {
+        if a == Tile::Ground || b == Tile::Ground {
             return false;
         }
 
@@ -203,6 +253,12 @@ impl Tile {
             };
         }
         return false;
+    }
+}
+
+impl Debug for Tile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}({:?})", self.as_str(), self.value()))
     }
 }
 
@@ -220,7 +276,7 @@ impl Debug for Field {
         f.write_fmt(format_args!(
             "[Field {} x {}]\n",
             self.0.len(),
-            self.0.iter().count()
+            self.0.iter().next().unwrap().iter().count()
         ))
         .unwrap();
         for line in &self.0 {
